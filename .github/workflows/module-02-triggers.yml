@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - main
+      - feature/*
 
   pull_request:
     branches:
@@ -41,6 +42,24 @@ jobs:
         if: github.event_name == 'workflow_dispatch'
         run: |
           echo "Selected environment: ${{ inputs.environment }}"
+
+      - name: Display Runner Information
+        run: |
+          echo "Runner OS: $RUNNER_OS"
+          echo "Workspace: $GITHUB_WORKSPACE"
+    
+      - name: Display Branch Information only if it is feature branch
+        if: github.ref_name != 'main'
+        run: |
+          echo "Branch: ${{ github.ref_name }}"
+          echo "Repository: ${{ github.repository }}"
+
+      - name: Pull Request Information #Testing GitHub Actions pull_request trigger.
+        if: github.event_name == 'pull_request'
+        run: |
+          echo "Pull Request Number: ${{ github.event.pull_request.number }}"
+          echo "Pull Request Title: ${{ github.event.pull_request.title }}"
+          echo "Pull Request Author: ${{ github.event.pull_request.user.login }}"
 
       - name: Validate Application
         run: |
