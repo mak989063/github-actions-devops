@@ -54,6 +54,13 @@ jobs:
           echo "Branch: ${{ github.ref_name }}"
           echo "Repository: ${{ github.repository }}"
 
+      - name: Pull Request Information #Testing GitHub Actions pull_request trigger.
+        if: github.event_name == 'pull_request'
+        run: |
+          echo "Pull Request Number: ${{ github.event.pull_request.number }}"
+          echo "Pull Request Title: ${{ github.event.pull_request.title }}"
+          echo "Pull Request Author: ${{ github.event.pull_request.user.login }}"
+
       - name: Validate Application
         run: |
           python -m py_compile projects/01-module-architecture/app/main.py
