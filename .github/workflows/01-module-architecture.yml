@@ -1,0 +1,45 @@
+name: Module 01 - Enterprise CI
+
+on:
+  push:
+    branches:
+      - main
+
+  pull_request:
+    branches:
+      - main
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+
+  source-validation:
+    name: Source Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Display Runner Information
+        run: |
+          echo "Runner OS: $RUNNER_OS"
+          echo "Workspace: $GITHUB_WORKSPACE"
+
+      - name: Validate Python Application
+        run: python -m py_compile projects/01-module-architecture/app/main.py
+
+  application-build:
+    name: Application Build
+    runs-on: ubuntu-latest
+    needs: source-validation
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Execute Application
+        run: python app/main.py

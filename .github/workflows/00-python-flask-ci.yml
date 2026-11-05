@@ -39,8 +39,7 @@ jobs:
       - name: Run Unit Tests
         env:
           PYTHONPATH: .
-        run: |
-          pytest
+        run: pytest
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -62,3 +61,26 @@ jobs:
           tags: |
             ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:latest
             ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+      - name: Smoke Test Docker Image
+        if: github.event_name == 'push'
+        run: |
+          IMAGE=${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+          echo "Pulling image..."
+          docker pull $IMAGE
+
+          echo "Starting container..."
+          docker run -d --name flask-app -p 5000:5000 $IMAGE
+
+          echo "Waiting for application..."
+          sleep 5
+
+          echo "Verifying application..."
+          curl --fail http://localhost:5000
+
+          echo "Stopping container..."
+          docker stop flask-app
+
+          echo "Removing container..."
+          docker rm flask-app
