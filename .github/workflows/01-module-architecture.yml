@@ -42,4 +42,4 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Execute Application
-        run: python app/main.py
+        run: python projects/01-module-architecture/app/main.py
