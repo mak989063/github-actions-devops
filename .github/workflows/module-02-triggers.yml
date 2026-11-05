@@ -1,0 +1,48 @@
+name: Module 02 - Workflow Triggers
+
+on:
+
+  push:
+    branches:
+      - main
+
+  pull_request:
+    branches:
+      - main
+
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Deployment environment
+        required: true
+        type: choice
+        options:
+          - dev
+          - test
+          - prod
+
+jobs:
+
+  workflow-info:
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Display Event
+        run: |
+          echo "Event: ${{ github.event_name }}"
+          echo "Branch: ${{ github.ref_name }}"
+          echo "Repository: ${{ github.repository }}"
+
+      - name: Display Manual Environment
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          echo "Selected environment: ${{ inputs.environment }}"
+
+      - name: Validate Application
+        run: |
+          python -m py_compile projects/01-module-architecture/app/main.py
+          echo "Validation successful"
