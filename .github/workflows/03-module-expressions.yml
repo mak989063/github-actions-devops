@@ -1,0 +1,82 @@
+
+name: Module 03 - Expressions and Contexts
+run-name: ${{ github.actor }} - ${{ github.workflow }} - ${{ github.event_name }} - ${{ github.ref_name }}
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Select deployment environment
+        required: true
+        type: choice
+        options:
+          - dev
+          - test
+          - prod
+
+permissions:
+  contents: read
+
+jobs:
+
+  detect-environment:
+    runs-on: ubuntu-latest
+
+    outputs:
+      target-env: ${{ steps.set-env.outputs.target-env }}
+      app-version: ${{ steps.set-env.outputs.app-version }}
+
+    steps:
+      - name: Determine environment
+        id: set-env
+        shell: bash
+        env:
+          BRANCH_NAME: ${{ github.ref_name }}
+          MANUAL_ENV: ${{ inputs.environment }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            TARGET_ENV="$MANUAL_ENV"
+          elif [[ "$BRANCH_NAME" == "main" ]]; then
+            TARGET_ENV="prod"
+          else
+            TARGET_ENV="dev"
+          fi
+
+          echo "target-env=$TARGET_ENV" >> "$GITHUB_OUTPUT"
+          echo "app-version=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - name: Display environment
+        run: |
+          echo "Target: ${{ steps.set-env.outputs.target-env }}"
+          echo "Version: ${{ steps.set-env.outputs.app-version }}"
+
+  validate:
+    needs: detect-environment
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Display deployment information
+        run: |
+          echo "Environment: ${{ needs.detect-environment.outputs.target-env }}"
+          echo "Version: ${{ needs.detect-environment.outputs.app-version }}"
+
+      - name: Validate application
+        run: echo "Validation successful"
+
+  deploy:
+    needs: [detect-environment, validate]
+    runs-on: ubuntu-latest
+
+    if: needs.detect-environment.outputs.target-env != ''
+
+    steps:
+      - name: Simulate deployment
+        run: |
+          echo "Deploying to ${{ needs.detect-environment.outputs.target-env }}"
+          echo "Version ${{ needs.detect-environment.outputs.app-version }}"
