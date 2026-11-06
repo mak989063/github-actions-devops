@@ -1,6 +1,6 @@
 
 name: Module 03 - Expressions and Contexts
-run-name: ${{ github.actor }} - ${{ github.workflow }} - ${{ github.event_name }} - ${{ github.ref_name }}
+run-name: ${{ github.actor }} ==> ${{ github.workflow }} - ${{ github.event_name }} - ${{ github.ref_name }}
 
 on:
   push:
