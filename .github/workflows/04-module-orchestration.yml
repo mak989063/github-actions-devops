@@ -1,0 +1,127 @@
+
+name: Module 04 - Job Orchestration
+
+on:
+  push:
+    branches: [main]
+
+  pull_request:
+    branches: [main]
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+
+  source-validation:
+    name: Source Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Validate Python Syntax
+        run: python -m py_compile projects/01-module-architecture/app/main.py
+
+      - name: Source Validation Complete
+        run: echo "Source validation passed"
+
+  python-tests:
+    name: Python Matrix Tests
+    needs: source-validation
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Execute Application
+        run: python projects/01-module-architecture/app/main.py
+
+      - name: Display Python Version
+        run: python --version
+
+  security-scan:
+    name: Dependency Security Check
+    needs: source-validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Check for requirements file
+        run: |
+          if [ -f requirements.txt ]; then
+            echo "Requirements file found"
+          else
+            echo "No requirements file found"
+          fi
+
+  build-package:
+    name: Build Package
+    needs: [python-tests, security-scan]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Create Build Package
+        run: |
+          mkdir -p dist
+          tar -czf dist/application.tar.gz -C projects/01-module-architecture app/
+
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: application-build
+          path: dist/application.tar.gz
+
+  pipeline-summary:
+    name: Pipeline Summary
+    needs:
+      - source-validation
+      - python-tests
+      - security-scan
+      - build-package
+
+    if: always()
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Display Pipeline Results
+        env:
+          SOURCE_RESULT: ${{ needs.source-validation.result }}
+          TEST_RESULT: ${{ needs.python-tests.result }}
+          SECURITY_RESULT: ${{ needs.security-scan.result }}
+          BUILD_RESULT: ${{ needs.build-package.result }}
+        run: |
+          echo "Source validation: $SOURCE_RESULT"
+          echo "Python tests: $TEST_RESULT"
+          echo "Security check: $SECURITY_RESULT"
+          echo "Build: $BUILD_RESULT"
+
+          if [[ "$SOURCE_RESULT" != "success" ||
+                "$TEST_RESULT" != "success" ||
+                "$SECURITY_RESULT" != "success" ||
+                "$BUILD_RESULT" != "success" ]]; then
+            echo "Pipeline failed"
+            exit 1
+          fi
+
+          echo "Pipeline completed successfully"
