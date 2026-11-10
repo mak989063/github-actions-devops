@@ -1,0 +1,20 @@
+name: Simple Action using Docker
+run-name: Simple Docker Action-${{ github.run_number }}-${{ github.actor }}
+on: [push, workflow_dispatch]
+
+jobs:
+    simple-action:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - name: Simple Docker Action
+              id: greet
+              uses: ./.github/actions/hello-docker
+              with:
+                who_to_greet: "Mani"
+
+            - name: Log greeting time
+              run: echo "${{ steps.greet.outputs.time }}"
+            
+            - name: Log Env Variable
+              run: echo $HELLO_TIME
