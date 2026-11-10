@@ -11,7 +11,7 @@ outputs:
     description: 'The time of greeting'
 runs:
   using: "node16"
-  main: index.js
+  main: "dist/index.js"
   pre: setup.js
   pre-if: runner.os == 'Linux'
   post: cleanup.js
