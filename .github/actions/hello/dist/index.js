@@ -37520,7 +37520,7 @@ function getOctokit(token, options, ...additionalPlugins) {
 
 
 try {
-
+    throw new Error('This is a test error');
     core_debug('Debugging is enabled');
     warning('This is a warning message');
     error('This is an error message');
