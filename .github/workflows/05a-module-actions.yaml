@@ -14,7 +14,7 @@ jobs:
                 who_to_greet: "Mani"
 
             - name: Log greeting time
-              run: echo "{{ steps.greet.outputs.time }}"
+              run: echo "${{ steps.greet.outputs.time }}"
             
             - name: Log Env Variable
               run: echo $HELLO_TIME
