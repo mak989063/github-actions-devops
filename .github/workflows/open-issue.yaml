@@ -1,0 +1,42 @@
+name: Open Issue
+on:
+    workflow_dispatch:
+        inputs:
+            title:
+                description: 'Title of the issue'
+                required: true
+                type: string
+            body:
+                description: 'Body of the issue'
+                default: 'This is a test issue created by GitHub Actions'
+                type: string
+            assignees:
+                description: 'Comma-separated list of assignees'
+                default: ''
+                type: string
+            labels:
+                description: 'Comma-separated list of labels'
+                default: ''
+                type: string
+
+permissions:
+  issues: write
+  contents: write
+
+jobs:
+    open-issue:
+        runs-on: ubuntu-latest
+        steps:
+            - name: checkout code
+              uses: actions/checkout@v4
+            - name: Create Github Issue Action
+              uses: owen-6936/create-github-issue@v1.2.0
+              id: create_issue
+              
+              with:
+                github-token: ${{ secrets.GITHUB_TOKEN }}
+                title: ${{ github.event.inputs.title }}
+                body: ${{ github.event.inputs.body }}
+                assignees: ${{ github.event.inputs.assignees }}
+                labels: ${{ github.event.inputs.labels }}
+            
