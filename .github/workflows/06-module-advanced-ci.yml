@@ -1,0 +1,137 @@
+
+name: Module 06 - Advanced CI Pipeline
+
+run-name: Advanced CI - ${{ github.run_number }} - ${{ github.actor }}
+
+on:
+  push:
+    branches: [main, feature/**]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# Cancel older runs for the same branch/PR
+concurrency:
+  group: advanced-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Least privilege
+permissions:
+  contents: read
+
+env:
+  PROJECT_PATH: projects/01-module-architecture/app
+
+jobs:
+
+  # JOB 1: Source validation
+  source-validation:
+    name: Source Validation
+    runs-on: ubuntu-latest
+
+    outputs:
+      source-path: ${{ steps.config.outputs.source_path }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate project
+        id: config
+        run: |
+          if [ ! -d "$PROJECT_PATH" ]; then
+            echo "Project directory not found"
+            exit 1
+          fi
+
+          echo "source_path=$PROJECT_PATH" >> "$GITHUB_OUTPUT"
+          echo "Source validation successful"
+
+      - name: Compile Python
+        run: python -m compileall "$PROJECT_PATH"
+
+  # JOB 2: Matrix testing
+  python-tests:
+    name: Python Tests (${{ matrix.python-version }})
+    needs: source-validation
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Execute application
+        run: python "${{ needs.source-validation.outputs.source-path }}/main.py"
+
+      - name: Test Python compilation
+        run: python -m py_compile "${{ needs.source-validation.outputs.source-path }}/main.py"
+
+  # JOB 3: Build artifact
+  build-package:
+    name: Build Application
+    needs: [source-validation, python-tests]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create package
+        env:
+          SOURCE_PATH: ${{ needs.source-validation.outputs.source-path }}
+        run: |
+          mkdir -p dist
+          tar -czf dist/application.tar.gz \
+            -C "$(dirname "$SOURCE_PATH")" app/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: application-build-${{ github.run_number }}
+          path: dist/application.tar.gz
+          retention-days: 7
+
+  # JOB 4: Final summary
+  pipeline-summary:
+    name: Pipeline Summary
+    needs:
+      - source-validation
+      - python-tests
+      - build-package
+
+    if: always()
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Generate summary
+        env:
+          VALIDATION: ${{ needs.source-validation.result }}
+          TESTS: ${{ needs.python-tests.result }}
+          BUILD: ${{ needs.build-package.result }}
+        run: |
+          echo "## Advanced CI Pipeline Summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Stage | Result |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Source Validation | $VALIDATION |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Python Matrix Tests | $TESTS |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Build Package | $BUILD |" >> "$GITHUB_STEP_SUMMARY"
+
+          if [[ "$VALIDATION" != "success" || \
+                "$TESTS" != "success" || \
+                "$BUILD" != "success" ]]; then
+            echo "Pipeline failed"
+            exit 1
+          fi
+
+          echo "Pipeline completed successfully"
